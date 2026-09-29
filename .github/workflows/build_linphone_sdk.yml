@@ -24,7 +24,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y cmake ninja-build yasm nasm doxygen python3-pip
-          pip3 install pystache six
+          pip3 install pystache six --break-system-packages
 
       - name: Set up Android NDK
         uses: android-actions/setup-android@v3
