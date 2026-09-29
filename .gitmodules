@@ -60,7 +60,7 @@
 	url = https://gitlab.linphone.org/BC/public/external/vo-amrwbenc.git
 [submodule "external/opencore-amr"]
 	path = external/opencore-amr
-	url = https://gitlab.linphone.org/BC/public/external/opencore-amr.git
+	url = https://github.com/prontomobile/opencore-amr.git
 [submodule "external/openldap"]
 	path = external/openldap
 	url = https://gitlab.linphone.org/BC/public/external/openldap.git
