@@ -20,9 +20,48 @@
 
 #include "apple_utils.h"
 
-//Plugins are installed in the 'Libraries' sub directory of the mediastreamer2 Framework
+#import <TargetConditionals.h>
+
+char *toSafeCStr(CFStringRef str, CFStringEncoding encoding);
+
+#if TARGET_OS_IPHONE
+/* iOS XCFramework builds embed codec plugins as siblings of mediastreamer2.framework
+   (for example Frameworks/msamr.framework), not under Libraries/. */
+static char *getIosFrameworksDir(void) {
+	CFStringRef cfFramework = CFStringCreateWithCString(NULL, MS2_FRAMEWORK, kCFStringEncodingUTF8);
+	CFBundleRef bundle = NULL;
+	CFURLRef bundleUrl = NULL;
+	CFURLRef parentUrl = NULL;
+	CFStringRef cfPath = NULL;
+	char *path = NULL;
+
+	if (cfFramework == NULL) return NULL;
+	bundle = CFBundleGetBundleWithIdentifier(cfFramework);
+	CFRelease(cfFramework);
+	if (bundle == NULL) return NULL;
+
+	bundleUrl = CFBundleCopyBundleURL(bundle);
+	if (bundleUrl == NULL) return NULL;
+	parentUrl = CFURLCreateCopyDeletingLastPathComponent(NULL, bundleUrl);
+	CFRelease(bundleUrl);
+	if (parentUrl == NULL) return NULL;
+
+	cfPath = CFURLCopyFileSystemPath(parentUrl, kCFURLPOSIXPathStyle);
+	CFRelease(parentUrl);
+	path = toSafeCStr(cfPath, kCFStringEncodingUTF8);
+	if (cfPath != NULL) CFRelease(cfPath);
+	return path;
+}
+#endif
+
+// macOS plugins live in the Libraries directory of the mediastreamer2 framework.
+// iOS plugins are separate frameworks next to it.
 char *getPluginsDir(void) {
-        return getBundleResourceDirPath(MS2_FRAMEWORK, "Libraries/");
+#if TARGET_OS_IPHONE
+	return getIosFrameworksDir();
+#else
+	return getBundleResourceDirPath(MS2_FRAMEWORK, "Libraries/");
+#endif
 }
 
 //Safely get an encoded string from the given CFStringRef

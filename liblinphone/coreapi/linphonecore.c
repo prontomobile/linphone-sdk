@@ -2975,6 +2975,8 @@ static void linphone_core_register_default_codecs(LinphoneCore *lc) {
 	linphone_core_register_payload_type(lc, &payload_type_opus, "useinbandfec=1", opus_enabled);
 	linphone_core_register_payload_type(lc, &payload_type_speex_wb, "vbr=on", TRUE);
 	linphone_core_register_payload_type(lc, &payload_type_speex_nb, "vbr=on", TRUE);
+	/* AMR-WB (octet-aligned) ahead of G.711 so HD Voice is preferred when the remote accepts it. */
+	linphone_core_register_payload_type(lc, &payload_type_amrwb, "octet-align=1", TRUE);
 	linphone_core_register_payload_type(lc, &payload_type_pcmu8000, NULL, TRUE);
 	linphone_core_register_payload_type(lc, &payload_type_pcma8000, NULL, TRUE);
 
@@ -2987,7 +2989,6 @@ static void linphone_core_register_default_codecs(LinphoneCore *lc) {
 	linphone_core_register_payload_type(lc, &payload_type_g722, NULL, FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_ilbc, "mode=30", FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_amr, "octet-align=1", FALSE);
-	linphone_core_register_payload_type(lc, &payload_type_amrwb, "octet-align=1", FALSE);
 	linphone_core_register_payload_type(lc, &payload_type_g729, "annexb=yes", TRUE);
 	/* For AAC, we use a config value to determine if we ought to support SBR. Since it is not offically supported
 	 * for the mpeg4-generic mime type, setting this flag to 1 will break compatibility with other clients. */

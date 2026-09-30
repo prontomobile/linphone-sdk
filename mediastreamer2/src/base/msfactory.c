@@ -44,6 +44,8 @@
 #endif
 #ifndef _WIN32
 #include <dirent.h>
+#include <string.h>
+#include <sys/stat.h>
 #else
 #ifndef PACKAGE_PLUGINS_DIR
 #if defined(_WIN32) || defined(_WIN32_WCE)
@@ -589,6 +591,69 @@ static bool_t ms_factory_dlopen_plugin(MSFactory *factory, const char *plugin_pa
 	return plugin_loaded;
 }
 
+/* iOS ships mediastreamer plugins as sibling frameworks (msamr.framework, ...).
+   The .so/.dylib scanner above never sees those directories. */
+#ifndef _WIN32
+static int ms_factory_load_framework_plugins(MSFactory *factory, DIR *ds, const char *dir) {
+#if defined(__APPLE__) && defined(HAVE_DLOPEN)
+	struct dirent *de;
+	int loaded = 0;
+
+	rewinddir(ds);
+	while ((de = readdir(ds)) != NULL) {
+		const char *suffix = ".framework";
+		size_t len = strlen(de->d_name);
+		size_t suffix_len = strlen(suffix);
+		size_t name_len;
+		char framework_path[1024];
+		char binary_path[1200];
+		char init_name[160];
+		char plugin_name[128];
+		struct stat st;
+		void *handle;
+		init_func_t initroutine;
+
+		if (len <= suffix_len || strcmp(de->d_name + (len - suffix_len), suffix) != 0) continue;
+		if (strncmp(de->d_name, "ms", 2) != 0) continue;
+		if (strcmp(de->d_name, "mediastreamer2.framework") == 0) continue;
+
+		name_len = len - suffix_len;
+		if (name_len == 0 || name_len >= sizeof(plugin_name)) continue;
+		memcpy(plugin_name, de->d_name, name_len);
+		plugin_name[name_len] = '\0';
+
+		if (snprintf(framework_path, sizeof(framework_path), "%s/%s", dir, de->d_name) >= (int)sizeof(framework_path))
+			continue;
+		if (stat(framework_path, &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+		if (snprintf(binary_path, sizeof(binary_path), "%s/%s", framework_path, plugin_name) >= (int)sizeof(binary_path))
+			continue;
+		if (snprintf(init_name, sizeof(init_name), "lib%s_init", plugin_name) >= (int)sizeof(init_name)) continue;
+
+		ms_message("Loading framework plugin %s (%s)", binary_path, init_name);
+		handle = dlopen(binary_path, RTLD_NOW);
+		if (handle == NULL) {
+			ms_warning("Fail to load framework plugin %s : %s", binary_path, dlerror());
+			continue;
+		}
+		initroutine = (init_func_t)dlsym(handle, init_name);
+		if (initroutine == NULL) {
+			ms_warning("Could not locate init routine %s of framework plugin %s", init_name, binary_path);
+			continue;
+		}
+		initroutine(factory);
+		ms_message("Framework plugin loaded (%s)", plugin_name);
+		loaded++;
+	}
+	return loaded;
+#else
+	(void)factory;
+	(void)ds;
+	(void)dir;
+	return 0;
+#endif
+}
+#endif
+
 int ms_factory_load_plugins_from_list(MSFactory *factory,
                                       const bctbx_list_t *plugins_list,
                                       const char *optionnal_plugins_path) {
@@ -752,6 +817,9 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir) {
 			}
 		}
 	}
+#ifndef _WIN32
+	num += ms_factory_load_framework_plugins(factory, ds, dir);
+#endif
 	bctbx_list_for_each(loaded_plugins, ms_free);
 	bctbx_list_free(loaded_plugins);
 	closedir(ds);

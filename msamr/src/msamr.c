@@ -79,9 +79,19 @@ static MSOfferAnswerContext *amr_offer_answer_create_context(void){
 	return &amr_oa;
 }
 
+static MSOfferAnswerContext *amrwb_offer_answer_create_context(void){
+	static MSOfferAnswerContext amrwb_oa = {amr_match, NULL, NULL};
+	return &amrwb_oa;
+}
+
 MSOfferAnswerProvider amr_offer_answer_provider={
 	"AMR",
 	amr_offer_answer_create_context
+};
+
+MSOfferAnswerProvider amrwb_offer_answer_provider={
+	"AMR-WB",
+	amrwb_offer_answer_create_context
 };
 
 
@@ -104,6 +114,7 @@ MS_PLUGIN_DECLARE(void) libmsamr_init(MSFactory *f) {
 #endif
 	
 	ms_factory_register_offer_answer_provider(f, &amr_offer_answer_provider);
+	ms_factory_register_offer_answer_provider(f, &amrwb_offer_answer_provider);
 
 	ms_message("libmsamr " VERSION " plugin loaded");
 }
