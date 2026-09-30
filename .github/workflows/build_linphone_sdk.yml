@@ -75,8 +75,19 @@ jobs:
       - name: Build SDK (iOS)
         run: cmake --build build-ios
 
-      - name: Upload iOS XCFrameworks
+      - name: Package iOS SDK (XCFrameworks + Swift wrapper)
+        run: |
+          mkdir -p ios-sdk-output/XCFrameworks
+          cp -R build-ios/linphone-sdk-novideo/apple-darwin/XCFrameworks/ ios-sdk-output/XCFrameworks/
+          # Copy Swift wrapper from arm64 slice (same content across slices)
+          if [ -d "build-ios/linphone-sdk-novideo/apple-darwin/share/linphonesw" ]; then
+            cp -R build-ios/linphone-sdk-novideo/apple-darwin/share/linphonesw ios-sdk-output/
+          elif [ -d "build-ios/linphone-sdk-novideo/ios-arm64/share/linphonesw" ]; then
+            cp -R build-ios/linphone-sdk-novideo/ios-arm64/share/linphonesw ios-sdk-output/
+          fi
+
+      - name: Upload iOS SDK
         uses: actions/upload-artifact@v4
         with:
           name: linphone-sdk-ios
-          path: build-ios/linphone-sdk-novideo/apple-darwin/XCFrameworks/
+          path: ios-sdk-output/
