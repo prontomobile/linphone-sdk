@@ -75,8 +75,28 @@ jobs:
       - name: Build SDK (iOS)
         run: cmake --build build-ios
 
-      - name: Upload iOS XCFrameworks
+      - name: Package iOS pod zip
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          # CMake's zip already has the CocoaPods layout:
+          #   linphone-sdk-novideo/apple-darwin/XCFrameworks/**
+          #   linphone-sdk-novideo/apple-darwin/share/linphonesw/LinphoneWrapper.swift
+          zips=(build-ios/linphone-sdk-novideo-*.zip)
+          if [ ${#zips[@]} -eq 0 ]; then
+            echo "CMake did not produce linphone-sdk-novideo-*.zip"
+            exit 1
+          fi
+          cp "${zips[0]}" linphone-sdk-novideo-ios.zip
+          unzip -l linphone-sdk-novideo-ios.zip | tee /tmp/ios-zip-list.txt
+          grep -q 'share/linphonesw/LinphoneWrapper.swift' /tmp/ios-zip-list.txt
+          grep -q 'msamr.xcframework/' /tmp/ios-zip-list.txt
+
+      - name: Upload iOS SDK
         uses: actions/upload-artifact@v4
         with:
           name: linphone-sdk-ios
-          path: build-ios/linphone-sdk-novideo/apple-darwin/XCFrameworks/
+          if-no-files-found: error
+          path: |
+            linphone-sdk-novideo-ios.zip
+            build-ios/linphone-sdk-novideo.podspec
